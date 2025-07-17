@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/yuzujr/C3/internal/config"
-	"github.com/yuzujr/C3/internal/utils"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -62,7 +61,7 @@ func parseLevel(lvl string) zapcore.Level {
 
 // 每小时一个日志文件
 func getHourlyLogFile(dir string) *os.File {
-	filename := utils.GetHourlyTime() + ".log"
+	filename := time.Now().Format("2006-01-02_15") + ".log"
 
 	path := filepath.Join(dir, filename)
 	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)

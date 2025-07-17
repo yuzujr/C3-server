@@ -3,7 +3,7 @@ package websocket
 import (
 	"github.com/yuzujr/C3/internal/logger"
 	"github.com/yuzujr/C3/internal/models"
-	"github.com/yuzujr/C3/internal/services"
+	"github.com/yuzujr/C3/internal/service"
 )
 
 type hub struct {
@@ -27,19 +27,21 @@ func (h *hub) Run() {
 	for {
 		select {
 		case client := <-h.Register:
-			logger.Infof("Client %s registered", client.ID)
-			h.Clients[client.ID] = client
-			services.SetClient(client.ID, &models.Client{
+			logger.Infof("Client %s registered", client.ClientID)
+			h.Clients[client.ClientID] = client
+			service.SetClient(&models.Client{
+				ClientID:     client.ClientID,
 				OnlineStatus: true,
 			})
-			logger.Infof("Client %s connected", client.ID)
+			logger.Infof("Client %s connected", client.ClientID)
 		case client := <-h.Unregister:
-			delete(h.Clients, client.ID)
+			delete(h.Clients, client.ClientID)
 			close(client.Send)
-			services.SetClient(client.ID, &models.Client{
+			service.SetClient(&models.Client{
+				ClientID:     client.ClientID,
 				OnlineStatus: false,
 			})
-			logger.Infof("Client %s disconnected", client.ID)
+			logger.Infof("Client %s disconnected", client.ClientID)
 		}
 	}
 }

@@ -1,36 +1,10 @@
 package models
 
-/*
-	{
-	  "api": {
-	    "hostname": "127.0.0.1",
-	    "port": 3000,
-	    "base_path": "",
-	    "use_ssl": false,
-	    "skip_ssl_verification": false,
-	    "interval_seconds": 60,
-	    "max_retries": 3,
-	    "retry_delay_ms": 1000,
-	    "add_to_startup": false,
-	    "client_id": ""
-	  }
-  	"lastUpload": "",
-  	"clientId": "",
-  	"build_info": {
-    	"build_timestamp": "",
-    	"hardcoded": true,
-    	"preset": "development",
-    	"preset_desc": "本地开发测试配置",
-    	"preset_name": "开发环境"
-  	}
-	}
-*/
-
 type ClientConfig struct {
-	Api        ApiConfig       `json:"api"`
-	ClientID   string          `json:"clientId"`
+	ID         uint            `gorm:"primaryKey" json:"-"`
 	LastUpload string          `json:"lastUpload"`
-	BuildInfo  BuildInfoConfig `json:"build_info"`
+	Api        ApiConfig       `gorm:"embedded;embeddedPrefix:api_" json:"api"`
+	BuildInfo  BuildInfoConfig `gorm:"embedded;embeddedPrefix:build_" json:"build_info"`
 }
 
 type ApiConfig struct {

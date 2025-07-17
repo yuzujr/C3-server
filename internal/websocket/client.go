@@ -3,19 +3,41 @@ package websocket
 import (
 	"encoding/json"
 
+	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/yuzujr/C3/internal/logger"
 )
 
 type client struct {
-	Conn *websocket.Conn
-	Send chan []byte
-	ID   string
+	Conn     *websocket.Conn
+	Send     chan []byte
+	ClientID string
 }
 
 type Command struct {
 	Type string `json:"type"`
 	Data any    `json:"data"`
+}
+
+func CreateClientConn(c *gin.Context, clientID string) error {
+	upgrader := websocket.Upgrader{}
+	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		return err
+	}
+
+	client := &client{
+		Conn:     conn,
+		Send:     make(chan []byte, 256),
+		ClientID: clientID,
+	}
+
+	HubInstance.Register <- client
+
+	go client.writePump()
+	go client.readPump()
+
+	return nil
 }
 
 func SendCommandToClient(clientID string, message Command) {
@@ -49,7 +71,7 @@ func (c *client) readPump() {
 		if err != nil {
 			break
 		}
-		handleClientResponse(c.ID, message)
+		handleClientResponse(c.ClientID, message)
 	}
 }
 

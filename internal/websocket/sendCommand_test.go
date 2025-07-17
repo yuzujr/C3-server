@@ -10,7 +10,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/yuzujr/C3/internal/database"
 	"github.com/yuzujr/C3/internal/models"
-	"github.com/yuzujr/C3/internal/services"
+	"github.com/yuzujr/C3/internal/service"
 )
 
 func TestHubCommandSend(t *testing.T) {
@@ -21,7 +21,7 @@ func TestHubCommandSend(t *testing.T) {
 	os.Setenv("ENV", "test")
 	database.InitDatabase()
 
-	services.SetClient("test-client", &models.Client{
+	service.SetClient(&models.Client{
 		ClientID:     "test-client",
 		Alias:        "test-client",
 		IPAddress:    "",
@@ -33,8 +33,8 @@ func TestHubCommandSend(t *testing.T) {
 	go h.Run()
 
 	c := &client{
-		ID:   "test-client",
-		Send: make(chan []byte, 10),
+		ClientID: "test-client",
+		Send:     make(chan []byte, 10),
 	}
 
 	// 注册 client
@@ -49,7 +49,7 @@ func TestHubCommandSend(t *testing.T) {
 		{
 			Type: "create_pty_session",
 			Data: map[string]any{
-				"session_id": c.ID,
+				"session_id": c.ClientID,
 				"cols":       80,
 				"rows":       24,
 			},
@@ -57,7 +57,7 @@ func TestHubCommandSend(t *testing.T) {
 		{
 			Type: "pty_resize",
 			Data: map[string]any{
-				"session_id": c.ID,
+				"session_id": c.ClientID,
 				"cols":       100,
 				"rows":       40,
 			},
@@ -65,21 +65,21 @@ func TestHubCommandSend(t *testing.T) {
 		{
 			Type: "pty_input",
 			Data: map[string]any{
-				"session_id": c.ID,
+				"session_id": c.ClientID,
 				"input":      "echo Hello World\n",
 			},
 		},
 		{
 			Type: "force_kill_session",
 			Data: map[string]any{
-				"session_id": c.ID,
+				"session_id": c.ClientID,
 			},
 		},
 	}
 
 	go func() {
 		for _, cmd := range cmds {
-			SendCommandToClient(c.ID, cmd)
+			SendCommandToClient(c.ClientID, cmd)
 			time.Sleep(10 * time.Millisecond) // 确保消息被处理
 		}
 	}()

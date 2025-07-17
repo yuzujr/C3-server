@@ -38,6 +38,14 @@ func load() {
 	if err != nil {
 		log.Fatalf("Invalid DB_PORT value: %v", err)
 	}
+	// SessionExpireHours
+	sessionExpireHours, err := strconv.Atoi(os.Getenv("SESSION_EXPIRE_HOURS"))
+	if err != nil {
+		log.Fatalf("Invalid SESSION_EXPIRE_HOURS value: %v", err)
+	}
+	if sessionExpireHours <= 0 {
+		log.Fatalf("SESSION_EXPIRE_HOURS must be greater than 0")
+	}
 
 	cfg = &Config{
 		Server: ServerConfig{
@@ -57,8 +65,7 @@ func load() {
 			Enabled:            os.Getenv("AUTH_ENABLED") == "true",
 			Username:           os.Getenv("AUTH_USERNAME"),
 			Password:           os.Getenv("AUTH_PASSWORD"),
-			SessionSecret:      os.Getenv("SESSION_SECRET"),
-			SessionExpireHours: os.Getenv("SESSION_EXPIRE_HOURS"),
+			SessionExpireHours: int64(sessionExpireHours),
 		},
 		Upload: UploadConfig{
 			Directory: os.Getenv("UPLOAD_DIR"),

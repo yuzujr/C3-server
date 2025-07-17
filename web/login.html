@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>C3 登录</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Fira Code', 'JetBrains Mono', 'Source Code Pro', 'Consolas', 'Monaco', 'Arial', sans-serif;
+      background: linear-gradient(135deg, #282c34 0%, #21252b 100%);
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #abb2bf;
+    }
+
+    .login-container {
+      background: #282c34;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow:
+        0 20px 40px rgba(0, 0, 0, 0.3),
+        0 0 0 1px rgba(171, 178, 191, 0.1);
+      width: 420px;
+      max-width: 90%;
+      border: 1px solid #3e4451;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .login-container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #98c379, #61afef, #c678dd);
+    }
+
+    .login-header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .login-header h1 {
+      color: #61afef;
+      font-size: 32px;
+      margin-bottom: 8px;
+      font-weight: 700;
+      text-shadow: 0 2px 4px rgba(97, 175, 239, 0.3);
+    }
+
+    .login-header p {
+      color: #5c6370;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .form-group {
+      margin-bottom: 24px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      color: #e5c07b;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid #3e4451;
+      border-radius: 8px;
+      font-size: 16px;
+      background: #21252b;
+      color: #abb2bf;
+      transition: all 0.3s ease;
+      font-family: inherit;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: #61afef;
+      box-shadow: 0 0 0 3px rgba(97, 175, 239, 0.2);
+      background: #1e2227;
+    }
+
+    .form-group input::placeholder {
+      color: #5c6370;
+    }
+
+    .login-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #98c379 0%, #56b6c2 100%);
+      color: #282c34;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .login-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s;
+    }
+
+    .login-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(152, 195, 121, 0.3);
+    }
+
+    .login-btn:hover::before {
+      left: 100%;
+    }
+
+    .login-btn:active {
+      transform: translateY(0);
+    }
+
+    .login-btn:disabled {
+      background: #3e4451;
+      color: #5c6370;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .login-btn:disabled::before {
+      display: none;
+    }
+
+    .error-message {
+      background: rgba(224, 108, 117, 0.1);
+      color: #e06c75;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      text-align: center;
+      display: none;
+      border: 1px solid rgba(224, 108, 117, 0.3);
+      font-weight: 500;
+    }
+
+    .loading {
+      display: none;
+      text-align: center;
+      margin-top: 20px;
+      color: #61afef;
+    }
+
+    .loading::after {
+      content: '';
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid #3e4451;
+      border-radius: 50%;
+      border-top-color: #61afef;
+      animation: spin 0.8s linear infinite;
+      margin-left: 8px;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 32px;
+      color: #5c6370;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    /* 代码风格装饰 */
+    .code-decoration {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      font-family: 'Fira Code', monospace;
+      font-size: 10px;
+      color: #3e4451;
+      line-height: 1.2;
+    }
+
+    /* 响应式设计 */
+    @media (max-width: 480px) {
+      .login-container {
+        padding: 32px 24px;
+        margin: 20px;
+      }
+
+      .login-header h1 {
+        font-size: 28px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="login-container">
+    <div class="login-header">
+      <h1>C3</h1>
+      <p>请登录以访问控制台</p>
+    </div>
+
+    <div id="errorMessage" class="error-message"></div>
+
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="username">用户名</label>
+        <input type="text" id="username" name="username" required autocomplete="username">
+      </div>
+
+      <div class="form-group">
+        <label for="password">密码</label>
+        <input type="password" id="password" name="password" required autocomplete="current-password">
+      </div>
+
+      <button type="submit" class="login-btn" id="loginBtn">
+        登录
+      </button>
+
+      <div class="loading" id="loading"></div>
+    </form>
+
+    <div class="footer">
+    </div>
+  </div>
+  <script type="module" src="js/modules/auth.js"></script>
+</body>
+
+</html>

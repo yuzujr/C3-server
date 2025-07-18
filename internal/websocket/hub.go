@@ -7,18 +7,20 @@ import (
 )
 
 type hub struct {
-	Clients    map[string]*client
-	Register   chan *client
-	Unregister chan *client
+	agents     map[string]*client // 客户端连接
+	users      map[*client]bool   // 前端用户连接
+	register   chan *client
+	unregister chan *client
 }
 
 var HubInstance = newHub()
 
 func newHub() *hub {
 	return &hub{
-		Clients:    make(map[string]*client),
-		Register:   make(chan *client),
-		Unregister: make(chan *client),
+		agents:     make(map[string]*client),
+		users:      make(map[*client]bool),
+		register:   make(chan *client),
+		unregister: make(chan *client),
 	}
 }
 
@@ -26,22 +28,32 @@ func (h *hub) Run() {
 	logger.Infof("WebSocket hub started")
 	for {
 		select {
-		case client := <-h.Register:
-			logger.Infof("Client %s registered", client.ClientID)
-			h.Clients[client.ClientID] = client
-			service.SetClient(&models.Client{
-				ClientID:     client.ClientID,
-				OnlineStatus: true,
-			})
-			logger.Infof("Client %s connected", client.ClientID)
-		case client := <-h.Unregister:
-			delete(h.Clients, client.ClientID)
-			close(client.Send)
-			service.SetClient(&models.Client{
-				ClientID:     client.ClientID,
-				OnlineStatus: false,
-			})
-			logger.Infof("Client %s disconnected", client.ClientID)
+		case client := <-h.register:
+			if client.Role == RoleAgent {
+				h.agents[client.ID] = client
+				service.SetClient(&models.Client{
+					ClientID:     client.ID,
+					OnlineStatus: true,
+				})
+				logger.Infof("Client %s connected", client.ID)
+			} else {
+				h.users[client] = true
+				logger.Infof("User Websocket connected")
+			}
+		case client := <-h.unregister:
+			if client.Role == RoleAgent {
+				delete(h.agents, client.ID)
+				service.SetClient(&models.Client{
+					ClientID:     client.ID,
+					OnlineStatus: false,
+				})
+				close(client.Send)
+				logger.Infof("Client %s disconnected", client.ID)
+			} else {
+				delete(h.users, client)
+				close(client.Send)
+				logger.Infof("User Websocket disconnected")
+			}
 		}
 	}
 }

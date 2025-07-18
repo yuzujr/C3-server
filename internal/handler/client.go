@@ -8,7 +8,6 @@ import (
 	"github.com/yuzujr/C3/internal/logger"
 	"github.com/yuzujr/C3/internal/models"
 	"github.com/yuzujr/C3/internal/service"
-	"github.com/yuzujr/C3/internal/websocket"
 )
 
 // 上传客户端配置
@@ -81,29 +80,4 @@ func HandleClientScreenshot(c *gin.Context) {
 
 	logger.Infof("Screenshot received from %s", clientID)
 	c.String(http.StatusCreated, "Screenshot uploaded")
-}
-
-// 处理客户端 WebSocket 连接
-func HandleClientWebSocketConnection(c *gin.Context) {
-	connType := c.Query("type")
-	switch connType {
-	case "web":
-		//TODO: not impl yet
-		return
-	case "client":
-		// 处理客户端连接
-		clientID := c.Query("client_id")
-
-		if clientID == "" {
-			c.JSON(400, gin.H{"error": "Missing client_id"})
-			return
-		}
-
-		if err := websocket.CreateClientConn(c, clientID); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create connection"})
-			logger.Errorf("Failed to create connection: %v", err)
-		}
-	default:
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid connection type"})
-	}
 }

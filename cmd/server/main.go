@@ -9,6 +9,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/yuzujr/C3/internal/config"
 	"github.com/yuzujr/C3/internal/database"
+	"github.com/yuzujr/C3/internal/handler"
 	"github.com/yuzujr/C3/internal/logger"
 	"github.com/yuzujr/C3/internal/middleware"
 	"github.com/yuzujr/C3/internal/routes"
@@ -54,6 +55,8 @@ func main() {
 	// 登录api
 	authGroup := r.Group(cfg.Server.BasePath + "auth")
 	routes.RegisterAuthRoutes(authGroup)
+	// WebSocket连接
+	r.GET("/ws", handler.HandleWSConnection)
 
 	// 启动
 	addr := cfg.Server.Host + ":" + strconv.Itoa(cfg.Server.Port)

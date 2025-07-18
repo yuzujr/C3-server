@@ -8,7 +8,7 @@ import (
 // 根据 client_id 查找 Client
 func FindClientByID(clientID string) (*models.Client, error) {
 	var client models.Client
-	err := database.DB.First(&client, clientID).Error
+	err := database.DB.Where("client_id = ?", clientID).First(&client).Error
 	if err != nil {
 		return nil, err
 	}
@@ -26,5 +26,5 @@ func FindAliasByID(clientID string) (string, error) {
 
 // 创建新 Client
 func UpsertClient(client *models.Client) error {
-	return database.DB.Create(client).Error
+	return database.DB.Save(client).Error
 }

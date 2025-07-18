@@ -9,5 +9,4 @@ import (
 func RegisterClientRoutes(r *gin.RouterGroup) {
 	r.POST("/screenshot", handler.HandleClientScreenshot)
 	r.POST("/client_config", handler.HandleClientConfig)
-	r.GET("/ws", handler.HandleClientWebSocketConnection)
 }

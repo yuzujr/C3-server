@@ -33,12 +33,13 @@ func TestHubCommandSend(t *testing.T) {
 	go h.Run()
 
 	c := &client{
-		ClientID: "test-client",
-		Send:     make(chan []byte, 10),
+		ID:   "test-client",
+		Send: make(chan []byte, 10),
+		Role: RoleAgent,
 	}
 
 	// 注册 client
-	h.Register <- c
+	h.register <- c
 	time.Sleep(10 * time.Millisecond)
 
 	// 依次发送命令
@@ -49,7 +50,7 @@ func TestHubCommandSend(t *testing.T) {
 		{
 			Type: "create_pty_session",
 			Data: map[string]any{
-				"session_id": c.ClientID,
+				"session_id": c.ID,
 				"cols":       80,
 				"rows":       24,
 			},
@@ -57,7 +58,7 @@ func TestHubCommandSend(t *testing.T) {
 		{
 			Type: "pty_resize",
 			Data: map[string]any{
-				"session_id": c.ClientID,
+				"session_id": c.ID,
 				"cols":       100,
 				"rows":       40,
 			},
@@ -65,21 +66,21 @@ func TestHubCommandSend(t *testing.T) {
 		{
 			Type: "pty_input",
 			Data: map[string]any{
-				"session_id": c.ClientID,
+				"session_id": c.ID,
 				"input":      "echo Hello World\n",
 			},
 		},
 		{
 			Type: "force_kill_session",
 			Data: map[string]any{
-				"session_id": c.ClientID,
+				"session_id": c.ID,
 			},
 		},
 	}
 
 	go func() {
 		for _, cmd := range cmds {
-			SendCommandToClient(c.ClientID, cmd)
+			sendCommandToAgent(c.ID, cmd)
 			time.Sleep(10 * time.Millisecond) // 确保消息被处理
 		}
 	}()

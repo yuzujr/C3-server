@@ -1,0 +1,61 @@
+# docker-compose.yml
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: c3-postgres
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - c3-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  c3-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: c3-server
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    volumes:
+      # 持久化上传文件
+      - ./uploads:/app/uploads
+      # 持久化日志文件
+      - ./logs:/app/logs
+      # 读取本地 .env 配置
+      - ./.env:/app/.env:ro
+    env_file:
+      - .env
+    environment:
+      - DOCKER_ENV=true
+      - TZ=Asia/Shanghai
+    restart: unless-stopped
+    networks:
+      - c3-network
+    healthcheck:
+      # 请求根路径，期望 200 返回
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  postgres_data:
+
+networks:
+  c3-network:
+    driver: bridge

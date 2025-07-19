@@ -1,42 +1,46 @@
 # C3 Server
 C3 Server is a Go-based backend for the C3 framework, offering better scalability, easier deployment, and higher reliability compared to previous versions.
 
-## Work in progress
-This project is currently under development.
+## Under Development
 
-### ✅ Completed
+The server has been refactored and now fully replicates the core features of the original Node.js version. The project is moving into active development.
 
-* Basic client upload API implemented
-* Implement WebSocket communication with clients
+### Outlook
 
-### 🔜 Upcoming
-
-* Connect and sync with web frontend
-
-### 🔭 Outlook
-
-The current frontend code is retained for now, but it has several limitations. In the future, I plan to refactor it using modern frameworks such as React, Vue, or Svelte. For now, our main focus is on backend development, and the frontend overhaul will be addressed in later stages.
+- More new features upcoming.
 
 ## Features
-- **WebSocket Support**: Real-time communication with clients.
-- **Web frontend**: A simple web interface for managing clients.
+
+- **Web frontend**: A pretty web interface that provides:
+  - Multi-user management
+  - Sending real-time commands
+  - Viewing screenshots (supports multiple monitors)
+  - A reverse shell based on xterm.js (frontend), WebSocket (communication), and pty (backend), offering millisecond-level responsiveness and a native experience
+
+- **WebSocket Communication**: Enables real-time interaction with clients.
 - **Database Integration**: Uses PostgreSQL for persistent storage.
 - **Environment Configuration**: Uses `.env` files for easy configuration management.
 
 ## Quick Start
-1. **Clone the repository**
-   ```sh
-   git clone https://github.com/yuzujr/C3-server.git
-   cd C3-server
-   ```
 
-2. **Configure environment variables**
-   - Copy `.env.example` to `.env` and update database and other settings as needed.
+1. **Get Server**: Download from [Releases](https://github.com/yuzujr/C3-server/releases) or [Build from Source](docs/build.md)
+2. **Setup**: Follow the [Setup Guide](docs/setup.md)
 
-3. **Start the server**
-   ```sh
-   # If you are unable to connect to the official Go module proxy, you can set an alternative proxy (e.g., `https://goproxy.io`) to download dependencies:
-   # go env -w GOPROXY=https://goproxy.io,direct
-   go mod tidy
-   go run cmd/server/main.go
-   ```
+## Legal
+
+**⚠️ DISCLAIMER: Educational and Research Use Only**
+
+This software is provided for educational, research, and authorized system administration purposes only. Users are solely responsible for ensuring compliance with all applicable laws and regulations in their jurisdiction.
+
+**Prohibited Uses:**
+- Unauthorized access to computer systems
+- Any illegal or malicious activities
+- Violation of computer crime laws
+
+**User Responsibilities:**
+- Obtain proper authorization before deployment
+- Comply with all applicable laws and regulations
+- Use only on systems you own or have explicit permission to access
+- Respect privacy and data protection laws
+
+The developers assume no liability for misuse of this software.

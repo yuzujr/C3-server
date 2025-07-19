@@ -2,48 +2,10 @@
 // 处理向客户端发送命令和配置管理
 
 import { selectedClient } from './state.js';
-import { showSuccess, showError, showWarning } from '../../toast/toast.js';
+import { showError, showWarning } from '../../toast/toast.js';
 import { buildUrl } from './path-utils.js';
+import { sendCommand } from './websocket.js';
 
-/**
- * 向客户端发送命令
- * @param {object} command - 要发送的命令对象
- * @param {boolean} showToastMessage - 是否显示toast消息（默认true）
- * @returns {Promise<object|null>} 返回响应结果，如果失败返回null
- */
-export async function sendCommand(command, showToastMessage = true) {
-  if (!selectedClient) {
-    if (showToastMessage) {
-      showWarning('请先选择客户端');
-    }
-    return null;
-  }
-
-  try {
-    const res = await fetch(buildUrl(`/web/command/${selectedClient}`), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(command)
-    });
-
-    const result = await res.json();
-
-    if (showToastMessage) {
-      if (result.success) {
-        showSuccess('命令发送成功');
-      } else {
-        showError(`命令发送失败: ${result.message}`);
-      }
-    }
-
-    return result;
-  } catch (error) {
-    if (showToastMessage) {
-      showError(`发送命令失败: ${error.message}`);
-    }
-    return null;
-  }
-}
 
 /**
  * 加载客户端配置
@@ -122,7 +84,7 @@ export async function updateClientConfig() {
     data: newConfig
   };
 
-  await sendCommand(cmd);
+  sendCommand(cmd);
 }
 
 /**
@@ -134,24 +96,11 @@ export async function sendOfflineCommand() {
     return false;
   }
 
-  try {
-    const result = await sendCommand({
-      type: 'offline',
-      data: {
-        reason: 'User requested offline',
-        timestamp: new Date().toISOString()
-      }
-    }, false);
-
-    if (result && result.success) {
-      showSuccess('下线命令已发送，客户端将安全退出');
-      return true;
-    } else {
-      showError('下线命令发送失败');
-      return false;
+  sendCommand({
+    type: 'offline',
+    data: {
+      reason: 'User requested offline',
+      timestamp: new Date().toISOString()
     }
-  } catch (error) {
-    showError(`发送下线命令失败: ${error.message}`);
-    return false;
-  }
+  }, false);
 }

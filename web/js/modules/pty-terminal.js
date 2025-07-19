@@ -2,7 +2,7 @@
 
 import { selectedClient } from './state.js';
 import { showWarning, showError } from '../../toast/toast.js';
-import { sendCommand } from './commands.js';
+import { sendCommand } from './websocket.js';
 
 // xterm.js 相关
 let terminal = null;
@@ -167,7 +167,7 @@ function sendPtyInput(input) {
       input: input,
       session_id: selectedClient
     }
-  }, false);
+  });
 }
 
 /**
@@ -185,13 +185,13 @@ function sendNewTerminal() {
 
   // 发送创建PTY会话命令
   sendCommand({
-    type: 'create_pty_session',
+    type: 'pty_create_session',
     data: {
       session_id: selectedClient,
       cols: cols,
       rows: rows
     }
-  }, false);
+  });
 }
 
 /**
@@ -292,7 +292,7 @@ function resizePtySession() {
       cols,
       rows
     }
-  }, false);
+  });
 }
 
 /**
@@ -336,10 +336,10 @@ async function killSession() {
     // 设置会话终止标志
     sessionTerminating = true;
 
-    await sendCommand({
-      type: 'force_kill_session',
+    sendCommand({
+      type: 'pty_kill_session',
       data: { session_id: selectedClient }
-    }, false);
+    });
 
     // 终止会话后清屏并显示连接信息
     if (terminal) {

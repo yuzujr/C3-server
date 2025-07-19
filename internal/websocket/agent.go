@@ -6,67 +6,70 @@ import (
 	"github.com/yuzujr/C3/internal/logger"
 )
 
-func sendCommandToAgent(clientID string, message Command) {
-	// 将命令转换为JSON格式
-	messageBytes, err := json.Marshal(message)
-	if err != nil {
-		logger.Errorf("Failed to marshal message for client %s: %v", clientID, err)
+func sendCommandToAgent(c *client, cmd Command) {
+	// 检查客户端角色是否为 Agent
+	if c.Role != RoleAgent {
+		logger.Errorf("Client %s is not an agent, cannot send command", c.ID)
 		return
 	}
 
-	// 查找客户端并发送消息
-	client, ok := HubInstance.agents[clientID]
+	// 查找客户端
+	client, ok := HubInstance.agents[c.ID]
 	if !ok {
-		logger.Errorf("Client %s not found", clientID)
+		logger.Errorf("Client %s not found", c.ID)
 		return
 	}
+
+	// 序列化命令
+	messageBytes, err := json.Marshal(cmd)
+	if err != nil {
+		logger.Errorf("Failed to marshal message for client %s: %v", c.ID, err)
+		return
+	}
+
+	// 发送消息
 	select {
 	case client.Send <- messageBytes:
 	default:
-		logger.Errorf("Failed to send message to client %s: channel full", clientID)
+		logger.Errorf("Failed to send message to client %s: channel full", c.ID)
 	}
 }
 
-// Agent 发来的包，只关心 type 和 data.output
-type agentMsg struct {
-	Type string          `json:"type"`
-	Data json.RawMessage `json:"data"`
-}
-
-// data 中仅包含 output
-type shellData struct {
-	Output string `json:"output"`
-}
-
 func handleAgentMessage(clientID string, message []byte) {
-	logger.Infof("收到 Agent %s 消息: %s", clientID, message)
+	// Agent 发来的包
+	type agentMsg struct {
+		Type      string         `json:"type"`
+		SessionID string         `json:"session_id"`
+		Data      map[string]any `json:"data"`
+	}
 
-	// 解析最外层，只取 type 和 data
+	// 发给 user 的包
+	type userMsg struct {
+		Type     string `json:"type"`
+		Output   string `json:"output"`
+		ClientID string `json:"client_id"`
+	}
+
+	logger.Debugf("收到 Agent %s 消息: %s", clientID, message)
+
+	// 解析 agentMsg
 	var am agentMsg
 	if err := json.Unmarshal(message, &am); err != nil {
 		logger.Errorf("解析 agentMsg 失败: %v", err)
 		return
 	}
 
-	// 只处理 shell_output
-	if am.Type != "shell_output" {
+	output, ok := am.Data["output"].(string)
+	if !ok {
+		// 不是pty发来的信息，忽略
 		return
 	}
 
-	// 解析 data.output
-	var sd shellData
-	if err := json.Unmarshal(am.Data, &sd); err != nil {
-		logger.Errorf("解析 shellData 失败: %v", err)
-		return
-	}
-
-	// 构造前端需要的最简消息
-	outMsg := struct {
-		Type   string `json:"type"`
-		Output string `json:"output"`
-	}{
-		Type:   am.Type,
-		Output: sd.Output,
+	// 构造前端需要的消息
+	outMsg := userMsg{
+		Type:     am.Type,
+		Output:   output,
+		ClientID: clientID,
 	}
 
 	// 序列化并广播
@@ -75,5 +78,6 @@ func handleAgentMessage(clientID string, message []byte) {
 		logger.Errorf("序列化 outMsg 失败: %v", err)
 		return
 	}
+	logger.Debugf("广播 Agent %s 消息: %s", clientID, bs)
 	broadcastMsgToUsers(bs)
 }

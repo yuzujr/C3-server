@@ -31,7 +31,7 @@ func (h *hub) Run() {
 		case client := <-h.register:
 			if client.Role == RoleAgent {
 				h.agents[client.ID] = client
-				service.SetClient(&models.Client{
+				service.UpsertClient(&models.Client{
 					ClientID:     client.ID,
 					OnlineStatus: true,
 				})
@@ -43,7 +43,7 @@ func (h *hub) Run() {
 		case client := <-h.unregister:
 			if client.Role == RoleAgent {
 				delete(h.agents, client.ID)
-				service.SetClient(&models.Client{
+				service.UpsertClient(&models.Client{
 					ClientID:     client.ID,
 					OnlineStatus: false,
 				})

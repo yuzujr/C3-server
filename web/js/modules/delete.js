@@ -56,14 +56,14 @@ async function performDelete(endpoint, body = null, errorPrefix = '删除') {
  * @param {number} hours - 删除多少小时前的截图
  */
 export async function deleteScreenshots(hours) {
-  await performDelete(`/web/delete-screenshots/${selectedClient}`, { hours }, '删除截图');
+  await performDelete(`/web/screenshots/${selectedClient}`, { hours }, '删除截图');
 }
 
 /**
  * 删除所有截图
  */
 export async function deleteAllScreenshots() {
-  await performDelete(`/web/delete-all-screenshots/${selectedClient}`, null, '删除所有截图');
+  await performDelete(`/web/all-screenshots/${selectedClient}`, null, '删除所有截图');
 }
 
 /**

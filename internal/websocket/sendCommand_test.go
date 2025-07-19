@@ -21,7 +21,7 @@ func TestHubCommandSend(t *testing.T) {
 	os.Setenv("ENV", "test")
 	database.InitDatabase()
 
-	service.SetClient(&models.Client{
+	service.UpsertClient(&models.Client{
 		ClientID:     "test-client",
 		Alias:        "test-client",
 		IPAddress:    "",
@@ -48,7 +48,7 @@ func TestHubCommandSend(t *testing.T) {
 		{Type: "resume_screenshots"},
 		{Type: "take_screenshot"},
 		{
-			Type: "create_pty_session",
+			Type: "pty_create_session",
 			Data: map[string]any{
 				"session_id": c.ID,
 				"cols":       80,
@@ -71,7 +71,7 @@ func TestHubCommandSend(t *testing.T) {
 			},
 		},
 		{
-			Type: "force_kill_session",
+			Type: "pty_kill_session",
 			Data: map[string]any{
 				"session_id": c.ID,
 			},
@@ -80,7 +80,7 @@ func TestHubCommandSend(t *testing.T) {
 
 	go func() {
 		for _, cmd := range cmds {
-			sendCommandToAgent(c.ID, cmd)
+			sendCommandToAgent(c, cmd)
 			time.Sleep(10 * time.Millisecond) // 确保消息被处理
 		}
 	}()

@@ -1,11 +1,12 @@
 // WebSocket 通信模块
 // 处理实时通知和WebSocket连接管理
 
-import { selectedClient, setWebSocket } from './state.js';
+import { selectedClient, setWebSocket, webSocket } from './state.js';
 import { addNewScreenshot } from './screenshots.js';
 import { handlePtyShellOutput } from './pty-terminal.js';
 import { handleClientStatusChange } from './clients.js';
 import { buildWebSocketUrl } from './path-utils.js';
+import { showSuccess, showError, showWarning } from '../../toast/toast.js';
 
 /**
  * 初始化 WebSocket 连接
@@ -40,29 +41,68 @@ export function initWebSocket() {
 }
 
 /**
+ * 通过 WebSocket 发送命令
+ * @param {object} command - 命令对象
+ */
+export function sendCommand(command) {
+  if (!selectedClient) {
+    showWarning('请先选择客户端');
+    return;
+  }
+  if (!webSocket || webSocket.readyState !== WebSocket.OPEN) {
+    showError('WebSocket 未连接');
+    return;
+  }
+
+  webSocket.send(JSON.stringify({
+    type: 'command',
+    client_id: selectedClient,
+    cmd: command
+  }));
+}
+
+/**
  * 处理 WebSocket 消息
  * @param {object} data - 接收到的消息数据
  */
 function handleWebSocketMessage(data) {
-  if (data.type === 'new_screenshot') {
-    if (data.client_id === selectedClient) {
-      addNewScreenshot(data.screenshot_url);
-    }
-  } else if (data.type === 'shell_output') {
-    // 处理shell命令输出 - 现在使用 client_id
-    if (data.client_id === selectedClient) {
-      // 直接使用PTY处理函数
-      handlePtyShellOutput(data);
-    }
-  } else if (data.type === 'client_status_change') {
-    // 处理客户端状态变化 - 现在使用 client_id
-    handleClientStatusChange(data.client_id, data.online);
-  } else if (data.type === 'alias_updated') {
-    // 处理别名更新
-    handleAliasUpdated(data.client_id, data.oldAlias, data.newAlias);
-  } else if (data.type === 'client_deleted') {
-    // 处理客户端删除事件
-    handleClientDeleted(data.client_id);
+  switch (data.type) {
+    case 'new_screenshot':
+      if (data.client_id === selectedClient) {
+        addNewScreenshot(data.screenshot_url);
+      }
+      break;
+
+    case 'shell_output':
+      if (data.client_id === selectedClient) {
+        handlePtyShellOutput(data);
+      }
+      break;
+
+    case 'client_status_change':
+      handleClientStatusChange(data.client_id, data.online);
+      break;
+
+    case 'alias_updated':
+      handleAliasUpdated(data.client_id, data.oldAlias, data.newAlias);
+      break;
+
+    case 'client_deleted':
+      handleClientDeleted(data.client_id);
+      break;
+
+    case 'command_ack':
+      if (data.client_id === selectedClient) {
+        if (data.success) {
+          showSuccess('命令发送成功');
+        } else {
+          showError(`命令发送失败：${data.message}`);
+        }
+      }
+      break;
+
+    default:
+      console.warn('未知消息类型：', data.type);
   }
 }
 

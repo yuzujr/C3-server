@@ -28,7 +28,7 @@ func HandleClientConfig(c *gin.Context) {
 	}
 
 	// 创建或更新客户端信息
-	service.SetClient(&models.Client{
+	service.UpsertClient(&models.Client{
 		ClientID:     clientID,
 		IPAddress:    c.ClientIP(),
 		OnlineStatus: true,
@@ -63,18 +63,9 @@ func HandleClientScreenshot(c *gin.Context) {
 		return
 	}
 
-	dst, err := service.SaveClientScreenshot(c, file, clientID)
-	if err != nil {
+	if err := service.SaveScreenshot(c, file, clientID); err != nil {
 		logger.Errorf("Failed to save screenshot: %v", err)
 		c.String(http.StatusInternalServerError, "Failed to save screenshot")
-		return
-	}
-
-	// 日志存储数据库
-	err = service.LogScreenshot(clientID, file.Filename, dst, file.Size)
-	if err != nil {
-		logger.Errorf("Database error: %v", err)
-		c.String(http.StatusInternalServerError, "Database error")
 		return
 	}
 

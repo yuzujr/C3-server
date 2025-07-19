@@ -19,5 +19,4 @@ type client struct {
 type Command struct {
 	Type      string         `json:"type"`
 	Data      map[string]any `json:"data"`
-	RequestID string         `json:"request_id,omitempty"` // 可选，用于跟踪请求
 }

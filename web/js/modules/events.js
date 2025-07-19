@@ -1,7 +1,8 @@
 // 事件监听器模块
 // 集中管理各种DOM事件监听器的设置
 
-import { sendCommand, updateClientConfig, sendOfflineCommand } from './commands.js';
+import { updateClientConfig, sendOfflineCommand } from './commands.js';
+import { sendCommand } from './websocket.js';
 
 /**
  * 初始化命令按钮事件监听器

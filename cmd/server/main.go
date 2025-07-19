@@ -72,7 +72,6 @@ func main() {
 
 	// 启动
 	addr := cfg.Server.Host + ":" + strconv.Itoa(cfg.Server.Port)
-	logger.Infof("Listening on %s", addr)
 	logger.Infof("Access the web interface at http://%s", addr)
 	if err := r.Run(addr); err != nil {
 		logger.Errorf("Failed to start server: %v", err)

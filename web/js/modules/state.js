@@ -6,7 +6,6 @@ export let currentImageIndex = 0;
 export let imageUrls = [];
 export let webSocket = null;
 export let cachedClientList = []; // 缓存的客户端列表
-export let skipNextDOMRebuild = false; // 临时标志：跳过下次DOM重建
 
 // 常量配置
 export const CLIENT_POLL_INTERVAL = 5000; // 5秒 - 客户端列表更新频率
@@ -14,10 +13,6 @@ export const CLIENT_POLL_INTERVAL = 5000; // 5秒 - 客户端列表更新频率
 // 状态更新函数
 export function setSelectedClient(clientId) {
   selectedClient = clientId; // 现在存储的是 client_id
-}
-
-export function setSkipNextDOMRebuild(skip) {
-  skipNextDOMRebuild = skip;
 }
 
 export function setCurrentImageIndex(index) {

@@ -60,6 +60,7 @@ func load() {
 			Name:     os.Getenv("DB_NAME"),
 			User:     os.Getenv("DB_USER"),
 			Password: os.Getenv("DB_PASSWORD"),
+			Logging:  os.Getenv("DB_LOGGING") == "true",
 		},
 		Auth: AuthConfig{
 			Enabled:            os.Getenv("AUTH_ENABLED") == "true",

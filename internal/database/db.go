@@ -9,6 +9,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	gormLogger "gorm.io/gorm/logger"
 )
 
 var DB *gorm.DB
@@ -21,12 +22,17 @@ func InitDatabase() {
 		cfg.DB.Host, cfg.DB.Port, cfg.DB.User, cfg.DB.Name, cfg.DB.Password,
 	)
 
+	gormConfig := &gorm.Config{}
+	if cfg.DB.Logging {
+		gormConfig.Logger = gormLogger.Default.LogMode(gormLogger.Info) // 启用 GORM 日志
+	} else {
+		gormConfig.Logger = gormLogger.Default.LogMode(gormLogger.Silent) // 禁用 GORM 日志
+	}
+
 	db, err := gorm.Open(postgres.New(postgres.Config{
 		DSN:                  dsn,
 		PreferSimpleProtocol: true, // 使用 simple protocol（pgx 特性）
-	}), &gorm.Config{
-		// Logger: gormLogger.Default.LogMode(gormLogger.Silent), // 禁用 GORM 日志
-	})
+	}), gormConfig)
 
 	if err != nil {
 		logger.Fatalf("failed to connect to database: %v", err)

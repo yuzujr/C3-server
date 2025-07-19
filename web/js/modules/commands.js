@@ -100,7 +100,6 @@ export async function sendOfflineCommand() {
     type: 'offline',
     data: {
       reason: 'User requested offline',
-      timestamp: new Date().toISOString()
     }
   }, false);
 }

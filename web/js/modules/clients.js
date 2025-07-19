@@ -7,29 +7,9 @@ import { fetchScreenshots } from './screenshots.js';
 import { loadClientConfig } from './commands.js';
 import { showError } from '../../toast/toast.js';
 import { buildUrl } from './path-utils.js';
-
-/**
- * 比较两个客户端列表是否相同
- * @param {Array} oldList - 旧的客户端列表
- * @param {Array} newList - 新的客户端列表
- * @returns {boolean} - 是否相同
- */
-function isClientListSame(oldList, newList) {
-  if (oldList.length !== newList.length) {
-    return false;
-  }
-
-  for (let i = 0; i < oldList.length; i++) {
-    const oldClient = oldList[i];
-    const newClient = newList[i];
-
-    if (oldClient.alias !== newClient.alias || oldClient.online !== newClient.online) {
-      return false;
-    }
-  }
-
-  return true;
-}
+import { updateClientManagementList } from './client-management.js';
+import { updatePtyTerminalState } from './pty-terminal.js';
+import { setTabDisabled } from './tabs.js';
 
 /**
  * 根据客户端在线状态更新功能可用性
@@ -105,28 +85,12 @@ export async function fetchClients() {
 
     const clients = await res.json();
 
-    // 检查是否应该跳过DOM重建（例如在WebSocket别名更新后）
-    const { skipNextDOMRebuild, setSkipNextDOMRebuild } = await import('./state.js');
-    if (skipNextDOMRebuild) {
-      setCachedClientList([...clients]);
-      setSkipNextDOMRebuild(false); // 重置标志
-      return;
-    }
-
-    // 检查客户端列表是否有变化，但第一次加载时要强制更新DOM
-    const isFirstLoad = cachedClientList.length === 0 && document.getElementById('clientsList').textContent === '加载中...';
-    if (!isFirstLoad && isClientListSame(cachedClientList, clients)) {
-      // 列表没有变化，直接返回，避免不必要的DOM更新
-      return;
-    }
 
     // 更新缓存
     setCachedClientList([...clients]);
 
     // 更新客户端管理列表
-    import('./client-management.js').then(({ updateClientManagementList }) => {
-      updateClientManagementList(clients);
-    });
+    updateClientManagementList(clients);
 
     const clientsList = document.getElementById('clientsList');
     clientsList.innerHTML = '';
@@ -136,11 +100,6 @@ export async function fetchClients() {
       setSelectedClient(null);
       document.getElementById('commands').style.display = 'none';
       document.getElementById('screenshots').textContent = '请选择客户端';
-
-      // 更新客户端管理列表（空列表）
-      import('./client-management.js').then(({ updateClientManagementList }) => {
-        updateClientManagementList([]);
-      });
 
       // 禁用终端功能 - 使用pty-terminal模块的统一方法
       import('./pty-terminal.js').then(async ({ updatePtyTerminalState }) => {
@@ -183,9 +142,7 @@ export async function fetchClients() {
         }
 
         // 禁用终端功能
-        import('./pty-terminal.js').then(async ({ updatePtyTerminalState }) => {
-          await updatePtyTerminalState(false);
-        });
+        await updatePtyTerminalState(false);
       }
     }
 
@@ -234,15 +191,13 @@ export async function fetchClients() {
     document.getElementById('screenshots').textContent = '请选择客户端';
 
     // 禁用终端功能
-    import('./pty-terminal.js').then(async ({ updatePtyTerminalState }) => {
-      await updatePtyTerminalState(false);
-    });
+    await updatePtyTerminalState(false);
   }
 }
 
 /**
  * 选择客户端
- * @param {string} clientId - 客户端ID（现在使用 client_id 而不是 alias）
+ * @param {string} clientId - 客户端ID
  * @param {boolean} isOnline - 客户端是否在线
  */
 export async function selectClient(clientId, isOnline = true) {
@@ -320,10 +275,8 @@ export function handleClientStatusChange(clientId, isOnline) {
       updateClientFeatures(isOnline);
 
       // 更新标签页状态
-      import('./tabs.js').then(({ setTabDisabled }) => {
-        setTabDisabled('shell', !isOnline);
-        setTabDisabled('config', !isOnline);
-      });
+      setTabDisabled('shell', !isOnline);
+      setTabDisabled('config', !isOnline);
     }
 
     // 更新DOM显示 - 使用 client_id

@@ -3,6 +3,8 @@
 
 import { showSuccess, showError, showWarning } from '../../toast/toast.js';
 import { buildUrl } from './path-utils.js';
+import { selectedClient, setSelectedClient } from './state.js';
+import { fetchClients } from './clients.js';
 
 let currentEditingClientId = null;
 let currentEditingAlias = null;
@@ -138,36 +140,29 @@ async function saveAliasEdit() {
       showSuccess('别名更新成功');
       closeAliasModal();
 
-      // 立即更新状态
-      const { selectedClient, setSelectedClient, setCachedClientList } = await import('./state.js');
-
-      // 清空缓存，强制重新获取
-      setCachedClientList([]);
-
       // 如果当前选中的是被重命名的客户端，立即更新选中状态
       if (selectedClient === currentEditingAlias) {
         setSelectedClient(result.newAlias);
       }
 
-      // 强制刷新客户端列表
-      const { fetchClients } = await import('./clients.js');
-      await fetchClients();
+      // 立即更新状态
+      fetchClients();
 
       // 再次检查并更新选中客户端的状态
-      if (selectedClient === result.newAlias) {
-        // 更新高亮显示
-        const { updateClientHighlight } = await import('./clients.js');
-        updateClientHighlight();
+      // if (selectedClient === result.newAlias) {
+      //   // 更新高亮显示
+      //   const { updateClientHighlight } = await import('./clients.js');
+      //   updateClientHighlight();
 
-        // 找到新客户端的在线状态并更新功能状态
-        const { cachedClientList } = await import('./state.js');
-        const newClientData = cachedClientList.find(c => c.alias === result.newAlias);
-        const isOnline = newClientData ? newClientData.online : true;
+      //   // 找到新客户端的在线状态并更新功能状态
+      //   const { cachedClientList } = await import('./state.js');
+      //   const newClientData = cachedClientList.find(c => c.alias === result.newAlias);
+      //   const isOnline = newClientData ? newClientData.online : true;
 
-        // 更新功能状态
-        const { updateClientFeatures } = await import('./clients.js');
-        updateClientFeatures(isOnline);
-      }
+      //   // 更新功能状态
+      //   const { updateClientFeatures } = await import('./clients.js');
+      //   updateClientFeatures(isOnline);
+      // }
     } else {
       showError(result.message || '更新别名失败');
     }
@@ -193,11 +188,9 @@ async function confirmDeleteClient() {
       closeDeleteClientModal();
 
       // 刷新客户端列表
-      const { fetchClients } = await import('./clients.js');
       await fetchClients();
 
       // 如果当前选中的是被删除的客户端，清除选中状态
-      const { selectedClient, setSelectedClient } = await import('./state.js');
       if (selectedClient === currentEditingAlias) {
         setSelectedClient(null);
         // 清空截图显示

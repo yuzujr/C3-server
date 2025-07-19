@@ -3,12 +3,18 @@ package service
 import (
 	"fmt"
 	"io/fs"
+	"mime/multipart"
 	"os"
 	"path/filepath"
 	"sort"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/yuzujr/C3/internal/config"
+	"github.com/yuzujr/C3/internal/eventbus"
+	"github.com/yuzujr/C3/internal/logger"
+	"github.com/yuzujr/C3/internal/models"
+	"github.com/yuzujr/C3/internal/repository"
 )
 
 type shot struct {
@@ -16,11 +22,56 @@ type shot struct {
 	mtime time.Time
 }
 
-// 返回截图url列表，要求前端可访问
+// 保存客户端截图文件并记录日志
+func SaveScreenshot(c *gin.Context, file *multipart.FileHeader, clientID string) error {
+	// 生成带随机数的文件名，防止同一秒文件被覆盖
+	ext := filepath.Ext(file.Filename)
+	name := file.Filename[:len(file.Filename)-len(ext)]
+	randomSuffix := fmt.Sprintf("_%d", time.Now().UnixNano()%1e6)
+	newFilename := fmt.Sprintf("%s%s%s", name, randomSuffix, ext)
+
+	dst := filepath.Join(config.Get().Upload.Directory, clientID, time.Now().Format("2006-01-02_15"), newFilename)
+	if err := c.SaveUploadedFile(file, dst); err != nil {
+		logger.Errorf("Failed to save file: %v", err)
+		return err
+	}
+
+	// 记录截图日志
+	// 如果记录失败，则删除已保存的文件
+	client, err := repository.FindClientByID(clientID)
+	if err != nil {
+		logger.Errorf("Failed to find client: %v", err)
+		_ = os.Remove(dst)
+		return err
+	}
+
+	screenshot := models.ScreenshotLog{
+		ClientID: client.ClientID,
+		Filename: newFilename,
+		FilePath: dst,
+		FileSize: int(file.Size),
+	}
+
+	if err := repository.CreateScreenshotLog(&screenshot); err != nil {
+		logger.Errorf("Failed to log screenshot: %v", err)
+		_ = os.Remove(dst)
+		return err
+	}
+
+	// 广播新截图消息
+	msg := eventbus.NewScreenshotMsg{
+		Type:     "new_screenshot",
+		ClientID: client.ClientID,
+		URL:      buildScreenshotURL(dst),
+	}
+	eventbus.Global.Broadcast(msg)
+	return nil
+}
+
+// 返回截图url列表
 func GetScreenshotsSince(clientID string, sinceMs int64) ([]string, error) {
 	cfg := config.Get()
-	// 由于已经把实际存储路径挂载到了 uploads 路径，这里可直接使用 uploads
-	baseDir := filepath.Join("uploads", clientID)
+	baseDir := filepath.Join(cfg.Upload.Directory, clientID)
 
 	var shots []shot
 	err := filepath.WalkDir(baseDir, func(pathStr string, d fs.DirEntry, err error) error {
@@ -32,17 +83,8 @@ func GetScreenshotsSince(clientID string, sinceMs int64) ([]string, error) {
 			return nil
 		}
 
-		// 1. 先算出相对于 UPLOAD_DIR 目录的相对路径
-		relPath, err := filepath.Rel("uploads", pathStr)
-		if err != nil {
-			return nil
-		}
-		// 2. 拼接成完整的 URL
-		url := fmt.Sprintf("%s/%s/%s",
-			cfg.Server.BasePath, //反向代理的基础路径
-			"uploads",
-			filepath.ToSlash(relPath), // e.g. "687657f2-86cf-9999/2025-07-19_15/xxx.jpg"
-		)
+		// 构造URL
+		url := buildScreenshotURL(pathStr)
 
 		shots = append(shots, shot{url: url, mtime: info.ModTime()})
 		return nil
@@ -142,4 +184,18 @@ func DeleteAllScreenshots(clientID string) (int, error) {
 		os.Remove(subdir)
 	}
 	return deleted, nil
+}
+
+// 传入实际存储路径，返回前端可访问的 URL
+func buildScreenshotURL(realPath string) string {
+	cfg := config.Get()
+	relPath, err := filepath.Rel(cfg.Upload.Directory, realPath)
+	if err != nil {
+		return ""
+	}
+	return filepath.Join(
+		cfg.Server.BasePath,       // 反向代理的基础路径
+		"uploads",                 // 实际的存储位置挂载在"uploads" 路径下
+		filepath.ToSlash(relPath), // e.g. "687657f2-86cf-9999/2025-07-19_15/xxx.jpg
+	)
 }

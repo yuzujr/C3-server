@@ -6,4 +6,5 @@ type DatabaseConfig struct {
 	Name     string
 	User     string
 	Password string
+	Logging  bool
 }

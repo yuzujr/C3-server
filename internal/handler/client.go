@@ -29,14 +29,15 @@ func HandleClientConfig(c *gin.Context) {
 
 	// 创建或更新客户端信息
 	service.UpsertClient(&models.Client{
-		ClientID:     clientID,
-		IPAddress:    c.ClientIP(),
-		OnlineStatus: true,
+		ClientID:  clientID,
+		IPAddress: c.ClientIP(),
+		Online:    true,
 	})
 
-	// 配置存储到数据库
+	// 存储到数据库
 	config.LastUpload = time.Now().Format("2006-01-02 15:04:05")
-	err := service.SetConfig(&config)
+	config.ClientID = clientID
+	err := service.UpsertConfig(&config)
 	if err != nil {
 		logger.Errorf("Failed to save config: %v", err)
 		c.String(http.StatusInternalServerError, "Failed to save config")

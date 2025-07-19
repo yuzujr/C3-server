@@ -2,72 +2,63 @@ package service
 
 import (
 	"errors"
-	"fmt"
-	"mime/multipart"
 	"os"
 	"path/filepath"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/yuzujr/C3/internal/config"
+	"github.com/yuzujr/C3/internal/eventbus"
 	"github.com/yuzujr/C3/internal/logger"
 	"github.com/yuzujr/C3/internal/models"
 	"github.com/yuzujr/C3/internal/repository"
 	"gorm.io/gorm"
 )
 
-// CreateClient 只做“新增”，客户端已存在将报错
-func CreateClient(info *models.Client) error {
-	// 检查是否已存在
-	if _, err := repository.FindClientByID(info.ClientID); err == nil {
-		return fmt.Errorf("client %s already exists", info.ClientID)
-	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return err
-	}
-
+// createClient 只做新增
+func createClient(info *models.Client) error {
 	// 填充默认字段
 	now := time.Now()
 	newClient := &models.Client{
-		ClientID:     info.ClientID,
-		Alias:        info.ClientID, // 默认别名为 client_id
-		IPAddress:    info.IPAddress,
-		OnlineStatus: info.OnlineStatus,
-		LastSeen:     now,
+		ClientID:  info.ClientID,
+		Alias:     info.ClientID, // 默认别名为 client_id
+		IPAddress: info.IPAddress,
+		Online:    info.Online,
+		LastSeen:  now,
 	}
 	return repository.UpsertClient(newClient)
 }
 
-// UpdateClient 只做“更新”，客户端不存在将报错
-func UpdateClient(info *models.Client) error {
-	client, err := repository.FindClientByID(info.ClientID)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return fmt.Errorf("client %s not found", info.ClientID)
-		}
-		return err
-	}
-
-	// 有值就更新
+// updateClient 只做更新
+func updateClient(old, info *models.Client) error {
 	if info.Alias != "" {
-		client.Alias = info.Alias
+		old.Alias = info.Alias
 	}
 	if info.IPAddress != "" {
-		client.IPAddress = info.IPAddress
+		old.IPAddress = info.IPAddress
 	}
-	client.OnlineStatus = info.OnlineStatus
-	client.LastSeen = time.Now()
+	old.Online = info.Online
+	old.LastSeen = time.Now()
 
-	return repository.UpsertClient(client)
+	return repository.UpsertClient(old)
+}
+
+func UpdateClient(info *models.Client) error {
+	old, err := repository.FindClientByID(info.ClientID)
+	if err != nil {
+		return err
+	}
+	return updateClient(old, info)
 }
 
 // UpsertClient 根据是否存在调用 CreateClient 或 UpdateClient
 func UpsertClient(info *models.Client) error {
-	if _, err := repository.FindClientByID(info.ClientID); errors.Is(err, gorm.ErrRecordNotFound) {
-		return CreateClient(info)
+	old, err := repository.FindClientByID(info.ClientID)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return createClient(info)
 	} else if err != nil {
 		return err
 	}
-	return UpdateClient(info)
+	return updateClient(old, info)
 }
 
 // 删除客户端
@@ -81,7 +72,15 @@ func DeleteClient(clientID string) error {
 		return err
 	}
 
-	return repository.DeleteClient(client)
+	if client.Online {
+		sendOfflineCommand(clientID, "Client deleted")
+		time.Sleep(100 * time.Millisecond) // 等待客户端处理下线命令
+	}
+
+	cleanupClientFiles(clientID)
+
+	logger.Infof("Client %s deleted", clientID)
+	return repository.DeleteClient(clientID)
 }
 
 // 获取客户端信息
@@ -144,70 +143,23 @@ func UpdateClientAlias(clientID, alias string) error {
 	return repository.UpsertClient(client)
 }
 
-// 保存或更新客户端配置
-func SetConfig(config *models.ClientConfig) error {
-	if err := validateApiConfig(config.Api); err != nil {
-		logger.Errorf("Invalid API config: %v", err)
-		return err
+// 发送下线命令
+func sendOfflineCommand(clientID, reason string) {
+	msg := eventbus.Command{
+		Type: "offline",
+		Data: map[string]any{"reason": reason},
 	}
-	return repository.UpsertClientConfig(config)
+
+	eventbus.Global.SendCommand(clientID, msg)
+	logger.Infof("Sent offline command to client %s", clientID)
 }
 
-func GetConfig(clientID string) (*models.ClientConfig, error) {
-	return repository.GetClientConfigByID(clientID)
-}
-
-func validateApiConfig(config models.ApiConfig) error {
-	if config.Hostname == "" {
-		return errors.New("hostname is required")
+// 清理客户端相关文件
+func cleanupClientFiles(clientID string) {
+	cfg := config.Get()
+	// 删除客户端目录
+	clientDir := filepath.Join(cfg.Upload.Directory, clientID)
+	if err := os.RemoveAll(clientDir); err != nil {
+		logger.Errorf("Failed to remove client directory %s: %v", clientDir, err)
 	}
-	if config.Port <= 0 || config.Port > 65535 {
-		return errors.New("port must be between 1 and 65535")
-	}
-	if config.IntervalSeconds <= 0 {
-		return errors.New("interval_seconds must be greater than 0")
-	}
-	if config.RetryDelayMilliseconds <= 0 {
-		return errors.New("retry_delay_ms must be greater than 0")
-	}
-	return nil
-}
-
-// 保存客户端截图文件并记录日志
-func SaveScreenshot(c *gin.Context, file *multipart.FileHeader, clientID string) error {
-	// 生成带随机数的文件名，防止同一秒文件被覆盖
-	ext := filepath.Ext(file.Filename)
-	name := file.Filename[:len(file.Filename)-len(ext)]
-	randomSuffix := fmt.Sprintf("_%d", time.Now().UnixNano()%1e6)
-	newFilename := fmt.Sprintf("%s%s%s", name, randomSuffix, ext)
-
-	dst := filepath.Join(config.Get().Upload.Directory, clientID, time.Now().Format("2006-01-02_15"), newFilename)
-	if err := c.SaveUploadedFile(file, dst); err != nil {
-		logger.Errorf("Failed to save file: %v", err)
-		return err
-	}
-
-	// 记录截图日志
-	// 如果记录失败，则删除已保存的文件
-	client, err := repository.FindClientByID(clientID)
-	if err != nil {
-		logger.Errorf("Failed to find client: %v", err)
-		_ = os.Remove(dst)
-		return err
-	}
-
-	screenshot := models.ScreenshotLog{
-		ClientID: client.ClientID,
-		Filename: newFilename,
-		FilePath: dst,
-		FileSize: int(file.Size),
-	}
-
-	if err := repository.CreateScreenshotLog(&screenshot); err != nil {
-		logger.Errorf("Failed to log screenshot: %v", err)
-		_ = os.Remove(dst)
-		return err
-	}
-
-	return nil
 }

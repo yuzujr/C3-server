@@ -9,6 +9,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/yuzujr/C3/internal/database"
+	"github.com/yuzujr/C3/internal/eventbus"
 	"github.com/yuzujr/C3/internal/models"
 	"github.com/yuzujr/C3/internal/service"
 )
@@ -22,11 +23,11 @@ func TestHubCommandSend(t *testing.T) {
 	database.InitDatabase()
 
 	service.UpsertClient(&models.Client{
-		ClientID:     "test-client",
-		Alias:        "test-client",
-		IPAddress:    "",
-		OnlineStatus: true,
-		LastSeen:     time.Now(),
+		ClientID:  "test-client",
+		Alias:     "test-client",
+		IPAddress: "",
+		Online:    true,
+		LastSeen:  time.Now(),
 	})
 
 	h := HubInstance
@@ -43,7 +44,7 @@ func TestHubCommandSend(t *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 
 	// 依次发送命令
-	cmds := []Command{
+	cmds := []eventbus.Command{
 		{Type: "pause_screenshots"},
 		{Type: "resume_screenshots"},
 		{Type: "take_screenshot"},
@@ -80,7 +81,7 @@ func TestHubCommandSend(t *testing.T) {
 
 	go func() {
 		for _, cmd := range cmds {
-			sendCommandToAgent(c, cmd)
+			eventbus.Global.SendCommand(c.ID, cmd)
 			time.Sleep(10 * time.Millisecond) // 确保消息被处理
 		}
 	}()
@@ -89,7 +90,7 @@ func TestHubCommandSend(t *testing.T) {
 	for i, want := range cmds {
 		select {
 		case msg := <-c.Send:
-			var got Command
+			var got eventbus.Command
 			if err := json.Unmarshal(msg, &got); err != nil {
 				t.Fatalf("unmarshal failed: %v", err)
 			}

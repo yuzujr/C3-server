@@ -2,6 +2,7 @@ package models
 
 type ClientConfig struct {
 	ID         uint            `gorm:"primaryKey" json:"-"`
+	ClientID   string          `gorm:"not null"`
 	LastUpload string          `json:"lastUpload"`
 	Api        ApiConfig       `gorm:"embedded;embeddedPrefix:api_" json:"api"`
 	BuildInfo  BuildInfoConfig `gorm:"embedded;embeddedPrefix:build_" json:"build_info"`

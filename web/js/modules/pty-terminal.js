@@ -242,7 +242,6 @@ async function showWelcomeMessage() {
 
   // 防止重复显示欢迎信息
   if (welcomeMessageShown) {
-    console.debug('Welcome message already shown, skipping');
     return;
   }
 
@@ -387,7 +386,6 @@ export async function updatePtyTerminalState(enabled) {
         await showWelcomeMessage();
       }
     } catch (error) {
-      console.debug('Terminal buffer check failed, showing welcome message:', error);
       // 如果检查失败，默认显示欢迎信息
       terminal.clear();
       await showWelcomeMessage();

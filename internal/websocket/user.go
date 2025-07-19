@@ -3,18 +3,8 @@ package websocket
 import (
 	"encoding/json"
 
-	"github.com/yuzujr/C3/internal/logger"
+	"github.com/yuzujr/C3/internal/eventbus"
 )
-
-func broadcastMsgToUsers(message []byte) {
-	for client := range HubInstance.users {
-		select {
-		case client.Send <- message:
-		default:
-			logger.Errorf("Failed to broadcast message: channel full")
-		}
-	}
-}
 
 // handleUserMessage 解析前端发来的消息，只处理 type="command"
 // cSend 即 client.Send，用于向用户写 ACK
@@ -51,30 +41,22 @@ func handleUserMessage(cSend chan []byte, raw []byte) {
 	}
 
 	// 3. 解析具体命令
-	var cmd Command
+	var cmd eventbus.Command
 	if err := json.Unmarshal(msg.Cmd, &cmd); err != nil {
 		ack["message"] = "解析命令失败: " + err.Error()
 		writeAck(cSend, ack)
 		return
 	}
 
-	// 4. 查找对应的 agent
-	agent := HubInstance.agents[msg.ClientID]
-	if agent == nil {
-		ack["message"] = "目标客户端不存在或未连接"
-		writeAck(cSend, ack)
-		return
-	}
+	// 4. 转发给 agent
+	eventbus.Global.SendCommand(msg.ClientID, cmd)
 
-	// 5. 转发给 agent
-	sendCommandToAgent(agent, cmd)
-
-	// 6. 高频命令不发送ACK
+	// 5. 高频命令不发送ACK
 	if cmd.Type == "pty_input" || cmd.Type == "pty_resize" {
 		return
 	}
 
-	// 7. 所有流程无误，标记成功并回 ACK
+	// 6. 所有流程无误，标记成功并回 ACK
 	ack["success"] = true
 	ack["message"] = "命令已成功发送"
 	writeAck(cSend, ack)

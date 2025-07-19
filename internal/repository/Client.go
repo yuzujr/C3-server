@@ -11,8 +11,8 @@ func UpsertClient(client *models.Client) error {
 }
 
 // 删除客户端
-func DeleteClient(client *models.Client) error {
-	return database.DB.Delete(client).Error
+func DeleteClient(id string) error {
+	return database.DB.Where("client_id = ?", id).Delete(&models.Client{}).Error
 }
 
 // 根据 client_id 查找 Client
@@ -38,7 +38,7 @@ func GetAllClients() ([]*models.Client, error) {
 // 获取在线客户端列表
 func GetOnlineClients() []*models.Client {
 	var clients []*models.Client
-	err := database.DB.Where("online_status = ?", true).Find(&clients).Error
+	err := database.DB.Where("online = ?", true).Find(&clients).Error
 	if err != nil {
 		return nil
 	}

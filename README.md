@@ -1,14 +1,6 @@
 # C3 Server
 C3 Server is a Go-based backend for the C3 framework, offering better scalability, easier deployment, and higher reliability compared to previous versions.
 
-## Under Development
-
-The server has been refactored and now fully replicates the core features of the original Node.js version. The project is moving into active development.
-
-### Outlook
-
-- More new features upcoming.
-
 ## Features
 
 - **Web frontend**: A pretty web interface that provides:

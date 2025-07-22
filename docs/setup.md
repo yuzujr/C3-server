@@ -1,12 +1,5 @@
 ## Server Setup
 
-### Prerequisites
-
-- PostgreSQL (for native installation)
-- Docker and Docker Compose (for Docker installation)
-
-### Method 1: Native Installation
-
 #### Database Configuration
 
 **Install PostgreSQL:**
@@ -80,21 +73,6 @@ Edit `.env` file with your database password and authentication settings:
 
 Open browser and navigate to: **http://localhost:3000**
 
-### Method 2: Docker Deployment
-
-#### Configure
-
-Same as [Configure Environment Variables](#configure-environment-variables) above
-
-#### Start Server
-
-```bash
-docker-compose up -d
-```
-
-#### Access Web Interface
-
-Open browser and navigate to: **http://localhost:3000**
 
 ### configuration-reference
 

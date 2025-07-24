@@ -32,7 +32,10 @@ func (h *hub) Broadcast(msg any) {
 }
 
 func (h *hub) SendCommand(id string, cmd eventbus.Command) {
-	c := h.agents[id]
+	c, ok := h.agents[id]
+	if !ok {
+		return
+	}
 	// 检查客户端角色是否为 Agent
 	if c.Role != RoleAgent {
 		logger.Errorf("Client %s is not an agent, cannot send command", c.ID)

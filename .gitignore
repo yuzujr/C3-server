@@ -1,3 +1,5 @@
 .env
 logs/
 uploads/
+releases/
+ci/

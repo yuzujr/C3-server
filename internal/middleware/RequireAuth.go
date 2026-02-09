@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/yuzujr/C3/internal/config"
 	"github.com/yuzujr/C3/internal/service"
 )
 
@@ -12,7 +13,7 @@ func RequireAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		sessionId, err := c.Cookie("sessionId")
 		if err != nil || sessionId == "" {
-			c.Redirect(http.StatusFound, "/login")
+			c.Redirect(http.StatusFound, config.Get().Server.BasePath+"/login")
 			c.Abort()
 			return
 		}
@@ -21,7 +22,7 @@ func RequireAuth() gin.HandlerFunc {
 		if err != nil || session == nil {
 			// 清除无效cookie
 			c.SetCookie("sessionId", "", -1, "/", "", false, true)
-			c.Redirect(http.StatusFound, "/login")
+			c.Redirect(http.StatusFound, config.Get().Server.BasePath+"/login")
 			c.Abort()
 			return
 		}

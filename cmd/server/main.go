@@ -12,6 +12,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/yuzujr/C3/internal/config"
 	"github.com/yuzujr/C3/internal/database"
+	"github.com/yuzujr/C3/internal/handler"
 	"github.com/yuzujr/C3/internal/logger"
 	"github.com/yuzujr/C3/internal/middleware"
 	"github.com/yuzujr/C3/internal/routes"
@@ -47,20 +48,18 @@ func main() {
 	r.Static("/static", filepath.Join(cwd, "web"))
 	r.Static("/uploads", config.Get().Upload.Directory)
 
-	// 注册路由
-	r.GET("/login", func(c *gin.Context) {
-		c.File(filepath.Join("./web", "login.html"))
-	})
-	r.GET("/", middleware.RequireAuth(), func(c *gin.Context) {
-		c.File(filepath.Join("./web", "index.html"))
-	})
-	clientGroup := r.Group(cfg.Server.BasePath + "client")
+	// HTML页面路由
+	r.GET("/login", handler.ServeHTMLWithConfig("login.html"))
+	r.GET("/", middleware.RequireAuth(), handler.ServeHTMLWithConfig("index.html"))
+	
+	// API路由组
+	clientGroup := r.Group("/client")
 	routes.RegisterClientRoutes(clientGroup)
-	authGroup := r.Group(cfg.Server.BasePath + "auth")
+	authGroup := r.Group("/auth")
 	routes.RegisterAuthRoutes(authGroup)
-	webGroup := r.Group(cfg.Server.BasePath + "web")
+	webGroup := r.Group("/web")
 	routes.RegisterWebRoutes(webGroup)
-	wsGroup := r.Group(cfg.Server.BasePath + "ws")
+	wsGroup := r.Group("/ws")
 	routes.RegisterWsRoutes(wsGroup)
 
 	// 设置服务器监听地址

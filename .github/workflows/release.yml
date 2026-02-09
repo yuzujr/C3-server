@@ -56,8 +56,8 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: '0'
         run: |
-          mkdir -p dist
-          go build -trimpath -ldflags "-s -w" -o "dist/${BINARY_NAME}_${{ matrix.goos }}_${{ matrix.goarch }}${{ matrix.ext }}" ./cmd/server
+          mkdir -p build dist
+          go build -trimpath -ldflags "-s -w" -o "build/${BINARY_NAME}${{ matrix.ext }}" ./cmd/server
 
       - name: Package
         env:
@@ -67,7 +67,7 @@ jobs:
         run: |
           PKG_DIR="${BINARY_NAME}_${VERSION}_${GOOS}_${GOARCH}"
           mkdir -p "package/${PKG_DIR}"
-          cp "dist/${BINARY_NAME}_${GOOS}_${GOARCH}${{ matrix.ext }}" "package/${PKG_DIR}/"
+          cp "build/${BINARY_NAME}${{ matrix.ext }}" "package/${PKG_DIR}/"
           cp -r web docs "package/${PKG_DIR}/"
           cp .env.example README.md LICENSE "package/${PKG_DIR}/"
 
@@ -81,7 +81,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dist-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: dist/*
+          path: |
+            dist/*.tar.gz
+            dist/*.zip
 
   release:
     needs: build
@@ -97,5 +99,7 @@ jobs:
       - name: Publish Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/*
+          files: |
+            dist/*.tar.gz
+            dist/*.zip
           generate_release_notes: true

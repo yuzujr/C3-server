@@ -81,7 +81,7 @@ async function initXtermTerminal() {
     cursorBlink: true,
     cursorStyle: 'block',
     fontSize: 14,
-    fontFamily: 'Consolas, "Liberation Mono", Menlo, Courier, monospace',
+    fontFamily: '"Maple Mono NF CN", "MapleMono NF CN", "Maple Mono NF", "MapleMono NF", "Symbols Nerd Font", "Symbols Nerd Font Mono", Consolas, "Liberation Mono", Menlo, Courier, monospace',
     theme: {
       background: '#1e1e1e',
       foreground: '#d4d4d4',

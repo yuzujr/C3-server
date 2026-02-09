@@ -1,0 +1,83 @@
+name: release
+
+on:
+  push:
+    tags:
+      - '*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            ext: ''
+            archive: tar.gz
+          - goos: linux
+            goarch: arm64
+            ext: ''
+            archive: tar.gz
+          - goos: darwin
+            goarch: amd64
+            ext: ''
+            archive: tar.gz
+          - goos: darwin
+            goarch: arm64
+            ext: ''
+            archive: tar.gz
+          - goos: windows
+            goarch: amd64
+            ext: .exe
+            archive: zip
+
+    env:
+      BINARY_NAME: c3-server
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: '0'
+        run: |
+          mkdir -p dist
+          go build -trimpath -ldflags "-s -w" -o "dist/${BINARY_NAME}${{ matrix.ext }}" ./cmd/server
+
+      - name: Package
+        env:
+          VERSION: ${{ github.ref_name }}
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          PKG_DIR="${BINARY_NAME}_${VERSION}_${GOOS}_${GOARCH}"
+          mkdir -p "package/${PKG_DIR}"
+          cp "dist/${BINARY_NAME}${{ matrix.ext }}" "package/${PKG_DIR}/"
+          cp -r web "package/${PKG_DIR}/"
+          cp .env.example README.md LICENSE "package/${PKG_DIR}/"
+
+          if [ "${{ matrix.archive }}" = "zip" ]; then
+            (cd package && zip -r "../dist/${PKG_DIR}.zip" "${PKG_DIR}")
+          else
+            (cd package && tar -czf "../dist/${PKG_DIR}.tar.gz" "${PKG_DIR}")
+          fi
+
+      - name: Publish Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
